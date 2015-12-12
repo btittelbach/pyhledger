@@ -21,13 +21,26 @@ scripts to help convert various bank-data export datat to hledger format
 
 ## Usage:
 
-    convert-*.py < bank-export.csv > new_ledger.ledger
+    convert-*.py < bank-export.(csv|json) > new_ledger.ledger
 
 
 visjsserver.py
 ==============
-Comprehensive Visualition of Account-network and statistics. Work in Progress
+Comprehensive Visualition of Account-network and statistics. Work in Progress. To be published
 
 ## Usage:
 
     ./visjsserver.py
+
+stats.(sh|py)
+=============
+Displays various graphs and information.
+Use as starting point for your own code.
+Probably not useable out of the box.
+
+mkmemberfees.hs
+===============
+Our script that takes sqlite database based on <tt>members.sql</tt> Scheme and generates
+monthly transfers between internal accounts for each membershipfee owned.
+This should balance out with the actual banktransfers of membershipfees that are imported
+from the bank csv 

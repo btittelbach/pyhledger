@@ -103,11 +103,12 @@ def populateShorthandDictWithHledgerAccounts(acctlist, shorthanddict):
     for acct in acctlist:
         if len(acct) < 5:
             continue
-        lastaname = acct.split(u":")[-1]
-        if lastaname in newdict:
-            duplicates.append(lastaname)
-        else:
-            newdict[lastaname] = acct
+        b = acct.split(":")
+        for subacct in [ ":".join(b[x:]) for x in range(0,len(b))]:
+            if subacct in newdict:
+                duplicates.append(subacct)
+            else:
+                newdict[subacct] = acct
     for d in set(duplicates):
         try:
             del newdict[d]
@@ -120,19 +121,18 @@ def populateShorthandDictWithHledgerAccounts(acctlist, shorthanddict):
 
 ### if transaction text is in the following format, we can immediately parse transfer information from Bank-Transfer-Usage-Text
 ### Format: EUR(\d+.\d\d|REST|ALL) <account1 | account1-shorthand> EUR(\d+.\d\d|REST|ALL) <account2 | account2-shorthand> EUR(\d+.\d\d|REST|ALL) <account3 | account3-shorthand> ..... etc
-re_booking_w_hledger_info = re.compile(r"(\d+\.\d\d|ALL|REST)\s+(.+)")
-elba_extrainfo_optional_textseparators_ = re.compile(r"^(.*?)\s*(ÜBERWEISUNG|INTERNET-ÜW|Überweisung/Dauerauftrag|DAUERAUFTRAG|EINZUG)\s*(.*)$")
+#elba_extrainfo_optional_textseparators_ = re.compile(r"^(.*?)\s*(ÜBERWEISUNG|INTERNET-ÜW|Überweisung/Dauerauftrag|DAUERAUFTRAG|EINZUG)\s*(.*)$")
+elba_extrainfo_neu_ = re.compile(r"Verwendungszweck:\s+(.+)$")
 def processHledgerAwareExpense(amountCmp, fulltext):
-    global hledger_accounts_, hledger_aware_booking_account_shorthands, hledger_accounts_longest_first
+    global hledger_accounts_, hledger_aware_booking_account_shorthands_ext, hledger_accounts_longest_first
     hledger_accounts_ = queryHledgerForAccountList(hledger_mainledgerpath_) if not "hledger_accounts_" in globals() else hledger_accounts_
-    hledger_aware_booking_account_shorthands = populateShorthandDictWithHledgerAccounts(hledger_accounts_,hledger_aware_booking_account_shorthands) if not "hledger_aware_booking_account_shorthands" in globals() else hledger_aware_booking_account_shorthands
+    hledger_aware_booking_account_shorthands_ext = populateShorthandDictWithHledgerAccounts(hledger_accounts_, hledger_aware_booking_account_shorthands) if not "hledger_aware_booking_account_shorthands_ext" in globals() else hledger_aware_booking_account_shorthands_ext
     hledger_accounts_longest_first = sorted(hledger_accounts_, key=len,reverse=True) if not "hledger_accounts_longest_first" in globals() is None else hledger_accounts_longest_first
-
-    dm = elba_extrainfo_optional_textseparators_.match(fulltext)
+    dm = elba_extrainfo_neu_.match(fulltext)
     if not dm is None:
-        text, other, sendertext = dm.group(1,2,3)
+        text = dm.group(1)
     else:
-        text, other, sendertext = (fulltext,"","")
+        text = fulltext
 
     tout = Transaction()
     postings = map(lambda x: re_booking_w_hledger_info.match(x).group(1,2),
@@ -143,9 +143,9 @@ def processHledgerAwareExpense(amountCmp, fulltext):
     for (amnttxt, accttxt) in postings:
         acct = None
         accttxt = accttxt.strip()
-        for shorthand in hledger_aware_booking_account_shorthands.keys():
+        for shorthand in hledger_aware_booking_account_shorthands_ext.keys():
             if accttxt == shorthand or (accttxt.startswith(shorthand) and accttxt[len(shorthand)] in " \t\n"):
-                acct = hledger_aware_booking_account_shorthands[shorthand]
+                acct = hledger_aware_booking_account_shorthands_ext[shorthand]
                 accttxt = accttxt[len(shorthand):].strip()
                 break
         if acct is None:
@@ -188,13 +188,12 @@ n26_primary_account_ = "assets:current:checking2"
 
 ###
 ###  Transaction can be matched and processed in the following way:
-###  ([(key, value_test_function(value))], amount_guard_function(amt)) : Transaction()
-###  ... if all keys exist in jsontrsc and all values statisfy the given value_test_function() the matchor matches if amount also matches amount_guard_function()
+###  lambda t: t[key].startswith("test") and expenseamt(t["Amount"]) : Transaction(),
 ###
 
 n26_transaction_matchors = [
-#    [("",lambda x: True)]:Transaction("receive interest").addPosting(Posting("revenue:interest:checking-interest-raika", nix)),
-#    [("",lambda x: x == "power")]::Transaction("receive excess utility payment").addPosting(Posting("expenses:utilities:electric", nix)),
+#    lambda t: "key" in t and revenueamt(t["Amount"]):Transaction("receive interest").addPosting(Posting("revenue:interest:checking-interest-raika", nix)),
+#    lambda t: "merchantName".startsWith("power") and revenueamt(t["Amount"]):Transaction("receive excess utility payment").addPosting(Posting("expenses:utilities:electric", nix)),
 ]
 ########## END Matchors
 

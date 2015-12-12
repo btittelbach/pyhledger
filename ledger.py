@@ -179,7 +179,7 @@ class Posting(object):
             return "{:{fill}<4}{:{fill}<{maxacctlen}}{:{fill}<5}{:{fill}>{maxamountlen}}{commentstr}".format("",self.account,"",amtstr, fill=" ", maxacctlen=maxacctlen, maxamountlen=maxamountlen, commentstr=self.__formatComment())
 
     def __formatComment(self):
-        commenttags = [ "%s:%s" % x for x in self.tags.items()] + self.commenttags
+        commenttags = [ "%s:%s" % x for x in sorted(self.tags.items())] + self.commenttags
         if len(commenttags) == 0:
             return ""
         return ( "\n" if self.amount is None or isinstance(self.amount, NoAmount) else "") + "\n".join(map(lambda l: "{:{fill}<4}; {}".format("",l, fill=" "), commenttags))
@@ -361,7 +361,7 @@ class Transaction(object):
         commenttags = []
         if len(self.comments) > 0:
             commenttags.append(self.comments[0])
-        commenttags += [ "%s:%s" % x for x in self.tags.items()]
+        commenttags += [ "%s:%s" % x for x in sorted(self.tags.items())]
         if len(commenttags) > 0:
             commenttags.insert(0,";")
         lines += map(lambda s: "; %s" % s, self.desc)

@@ -12,7 +12,7 @@ import time
 #################### BEGIN CONFIG ##########################
 
 from config import *
-transaction_type_direction_ = {"CT":1,"AA":-1,"PT":-1,"AV":1, "AE":1}
+transaction_type_direction_ = {"CT":1,"AA":-1,"PT":-1,"AV":1, "AE":1, "DD":-1, "DT":-1}
 
 #################### CONFIG END ##########################
 
@@ -25,7 +25,7 @@ def addTagsFromDict(t, dct, prepend=""):
 
 
 newjournal = []
-input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='ascii',newline='')
+input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8',newline='')
 json_array_sorted = sorted(json.load(input_stream)["data"], key=lambda x: x["visibleTS"])
 for jsontrsc in json_array_sorted:
     date = datetime.date.fromtimestamp(jsontrsc["visibleTS"]/1000.0)
@@ -35,14 +35,14 @@ for jsontrsc in json_array_sorted:
 #    else:
     assert("type" in jsontrsc and jsontrsc["type"] in transaction_type_direction_)
     amount = jsontrsc["amount"] * transaction_type_direction_[(jsontrsc["type"])]
+    jsontrsc["Amount"] = amount
     name = " ".join([ str(jsontrsc[k]).strip() for k in ["bankTransferTypeText","partnerName","merchantName","merchantCity"] if k in jsontrsc ])
     new_transaction = None
-    for ((key_value_matchor_list, amt_guard_func), possible_transaction) in n26_transaction_matchors:
-        if not amt_guard_func(amount):
-            continue
-        if not all([(k in jsontrsc) for (k,vt) in key_value_matchor_list]):
-            continue
-        if not all([(vt(jsontrsc[k])) for (k,vt) in key_value_matchor_list]):
+    for (guardfunc, possible_transaction) in n26_transaction_matchors.items():
+        try:
+            if not guardfunc(jsontrsc):
+                continue
+        except Exception as e:
             continue
         new_transaction = possible_transaction.copy()
         break # first match wins
