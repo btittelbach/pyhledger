@@ -8,7 +8,7 @@ Cool visualisation for your account network.
 ledger.py
 =========
 
-Is a simple python3 library that can parse ledger() and especially hledger ledgers-files (see http://hledger.org).
+Is a simple python3 module that can parse ledger() and especially hledger ledgers-files (see http://hledger.org).
 It was originally written to help parse bank statement csv exports and generate hledger compatible output.
 
 ## Usage:
