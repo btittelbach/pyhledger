@@ -671,7 +671,7 @@ def getListOfChildAccounts(fullacctlist, parentaccount):
 
 ### sorts Journal by date but also keeps original order for postings with the same date
 def sortTransactionsByDate(transactions):
-    return [ t for a,b,t in sorted([(t.date,num,t) for t,num in zip(transactions,range(0,len(transactions)))])]
+    return [ t for a,b,t in sorted([(t.date.replace("-","").replace("/",""),num,t) for t,num in zip(transactions,range(0,len(transactions)))])]
 
 def getDateOfPosting(transaction, account):
     pl = transaction.findPostingWithAccount(account)
