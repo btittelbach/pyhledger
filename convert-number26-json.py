@@ -12,7 +12,7 @@ import time
 #################### BEGIN CONFIG ##########################
 
 from config import *
-transaction_type_direction_ = {"CT":1,"AA":-1,"PT":-1,"AV":1, "AE":1, "DD":-1, "DT":-1}
+transaction_type_direction_ = {"CT":1,"AA":-1,"PT":-1,"PF":-1,"AV":1, "AE":1, "DD":-1, "DT":-1}
 
 #################### CONFIG END ##########################
 
@@ -26,15 +26,15 @@ def addTagsFromDict(t, dct, prepend=""):
 
 newjournal = []
 input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='utf8',newline='')
-json_array_sorted = sorted(json.load(input_stream)["data"], key=lambda x: x["visibleTS"])
+json_array_sorted = sorted(json.load(input_stream), key=lambda x: x["visibleTS"])
 for jsontrsc in json_array_sorted:
     date = datetime.date.fromtimestamp(jsontrsc["visibleTS"]/1000.0)
-    currency = jsontrsc["currencyCode"]["currencyCode"]
+    currency = jsontrsc["currencyCode"]
 #    if "newAmount" in jsontrsc and "oldAmount" in jsontrsc:
 #        amount = jsontrsc["newAmount"] - jsontrsc["oldAmount"] #gives us plus/minus sign which "amount" does not give
 #    else:
     assert("type" in jsontrsc and jsontrsc["type"] in transaction_type_direction_)
-    amount = jsontrsc["amount"] * transaction_type_direction_[(jsontrsc["type"])]
+    amount = jsontrsc["amount"] # * transaction_type_direction_[(jsontrsc["type"])]
     jsontrsc["Amount"] = amount
     name = " ".join([ str(jsontrsc[k]).strip() for k in ["bankTransferTypeText","partnerName","merchantName","merchantCity"] if k in jsontrsc ])
     new_transaction = None
