@@ -55,6 +55,11 @@ for jsontrsc in json_array_sorted:
         else:
             new_transaction = unknown_equity_default_transaction_.copy()
 
+    ## Convert FutureAmountFractions to real Amounts
+    for p in new_transaction.postings:
+        if isinstance(p.amount, FutureAmountFraction):
+            p.amount.convertToAmount(Amount(amount,currency))
+
     new_transaction.setDate(date).addComment(name)
     new_posting = Posting(n26_primary_account_, Amount(amount, currency))
     if amount < 0.0 and "newAmount" in jsontrsc:
