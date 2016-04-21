@@ -22,8 +22,6 @@ from config import *
 
 #################### CONFIG END ##########################
 
-nix = NoAmount()
-nonascii_re = re.compile(r"[^[:ascii:]]")
 transfer_regex_ = re.compile(r"^To '([^']+)'$")
 
 def quote(str):
@@ -35,22 +33,21 @@ csvfile = csv.reader(input_stream, delimiter=',', quotechar="\"", quoting=csv.QU
 transactions = []
 for row in csvfile:
     new_transaction = None
-    (date,expenseacct,category,amountCmp,currency,csvdescription) = row
+    (date,expenseacct,category,amountCmp,currency,amountCmp2,currency2,csvdescription) = row
     if date == "date" and expenseacct == "account":
         continue
     if not re_hide_line_.match(csvdescription) is None:
         continue
     date = datetime.datetime.strptime(date,"%d/%m/%Y").date()
-    amountCmp = float(amountCmp)
+    amountCmp = float(amountCmp.replace(",",""))
 
     if category.startswith("From '"):
         continue
 
-    assert(expenseacct in monefy_account_shorthands)
+    if not expenseacct in monefy_account_shorthands:
+        print("%s not in %s" % (expenseacct,monefy_account_shorthands))
+        assert(False)
     targetacct = monefy_account_shorthands[expenseacct]
-
-    if targetacct in monefy_ignore_accounts_:
-        continue
 
     description, *commentlist = csvdescription.split(";")
     description = description.strip()
@@ -67,12 +64,18 @@ for row in csvfile:
         sourceacct = tm.group(1)
         assert(sourceacct in monefy_account_shorthands)
         sourceacct = monefy_account_shorthands[sourceacct]
+        if description == "Assert":
+            new_transaction = Transaction(description, date).addPosting(Posting(sourceacct,Amount(0,currency)).addPostPostingAssertAmount(Amount(-1*amountCmp,currency))).addTag("monefy")
+            transactions.append(new_transaction)
+            continue
     else:
         if not category in monefy_category_shorthands:
             print("unknown category:",category,file=sys.stderr)
             assert(False)
         sourceacct = monefy_category_shorthands[category]
 
+    if targetacct in monefy_ignore_accounts_:
+        continue
         new_transaction.addPosting(Posting(sourceacct, nix, comment)).addTag("monefy")
 
     transactions.append(new_transaction)
