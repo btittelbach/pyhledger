@@ -97,7 +97,8 @@ class Amount(object):
 
     def __str__(self):
         "Format unit/currency quantity as a string."
-        a = "%.4f %s" % (self.quantity, self.currency)
+        a = "%.4f" % (self.quantity)
+        a = "%s %s" % (a.rstrip("0").rstrip(".,"), self.currency)  #unfortunately %g does not do the correct thing so we need to use rstrip
         if not self.totalprice is None:
             if not self.perunitprice is None and self.quantity == 0:
                 a += " @ " + str(self.perunitprice)
@@ -376,6 +377,7 @@ class Transaction(object):
 
 # TODO: postings can have individual date, so for certain asserts it may be necessary to have a journal sorted per account and to also assert per account
 # WARNING this will automatically unelideJokerPostings
+# returns [(t:Transaction, runsum:{acct:{currency:amt}}, assertionsok:bool)]
 def runningSumOfJournal(journal):
     acct_currency_amt_dict = defaultdict(lambda: defaultdict(lambda: Amount(0,"")))
     assrt = True
