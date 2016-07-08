@@ -632,18 +632,18 @@ def parseJournal(jreader):
     return journal
 
 ### query hledger for accounts
-def queryHledgerForAccountList(ledgerpath, depth=None):
-    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["accounts","--ignore-assertions"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]),stdout=subprocess.PIPE).communicate()[0]
+def queryHledgerForAccountList(ledgerpath, depth=None, args=[]):
+    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["accounts","--ignore-assertions"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)] + args),stdout=subprocess.PIPE).communicate()[0]
     ## python asumes subprocess.PIPE i.e. stdout is ascii encoded
     return list(filter(len,codecs.decode(stdout,"utf-8").split(u"\n")))
 
 ### query hledger for accounts and their balance
 re_account_balance = re.compile(r"\s+"+ re_amount_str_3captures + r"\s+("+re_account_str+r")$")
-def queryHledgerForAccountListWithBalance(ledgerpath, depth=None):
-    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["balance","--cost", "--flat", "--no-elide"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]),stdout=subprocess.PIPE).communicate()[0]
+def queryHledgerForAccountListWithBalance(ledgerpath, depth=None, args=[]):
+    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["balance","--cost", "--flat", "--no-elide"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]+args),stdout=subprocess.PIPE).communicate()[0]
     ## python asumes subprocess.PIPE i.e. stdout is ascii encoded
     rv = []
-    for l in codecs.decode(stdout,"utf-8").split(u"\n"):
+    for l in codecs.decode(stdout,"utf-8").split(u"\n")[:-2]:
         m = re_account_balance.match(l)
         if not m is None:
             rv.append((m.group(4),parseAmount(*m.group(1,2,3))))
