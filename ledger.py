@@ -438,6 +438,20 @@ def filterRunningSum(running_sum_journal, fromdate=None, todate=None, account=No
             continue
         yield (t, acct_currency_amt_dict, assrt)
 
+# runningSumOfJournal -> Register: [t.date, acct_currency_amt_dict] with t.date being uniqe
+def registerFromRunningSum(running_sum_journal):
+    last_date = None
+    last_acct_currency_amt_dict = None
+    for (t, acct_currency_amt_dict, assrt) in running_sum_journal:
+        #skip all entries expect the latest of each day
+        if last_date is None:
+            last_date = t.date
+        if t.date != last_date:
+            yield(last_date, last_acct_currency_amt_dict)
+        last_date = t.date
+        last_acct_currency_amt_dict = acct_currency_amt_dict
+    yield(last_date, last_acct_currency_amt_dict)
+
 def cashflowPerAccount(journal, fromdate=None, todate=None, addinsubaccounts=False):
     acct_currency_accts_cashflow_dict = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
     assrt = True
