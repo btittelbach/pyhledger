@@ -640,7 +640,7 @@ def queryHledgerForAccountList(ledgerpath, depth=None, args=[]):
 ### query hledger for accounts and their balance
 re_account_balance = re.compile(r"\s+"+ re_amount_str_3captures + r"\s+("+re_account_str+r")$")
 def queryHledgerForAccountListWithBalance(ledgerpath, depth=None, args=[]):
-    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["balance","--cost", "--flat", "--no-elide"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]+args),stdout=subprocess.PIPE).communicate()[0]
+    stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath])  + ["balance","--cost", "--flat", "--no-elide", "--empty"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]+args),stdout=subprocess.PIPE).communicate()[0]
     ## python asumes subprocess.PIPE i.e. stdout is ascii encoded
     rv = []
     for l in codecs.decode(stdout,"utf-8").split(u"\n")[:-2]:
