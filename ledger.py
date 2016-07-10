@@ -95,6 +95,9 @@ class Amount(object):
             self.flipSign()
         return self
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def __str__(self):
         "Format unit/currency quantity as a string."
         a = "%.4f" % (self.quantity)
