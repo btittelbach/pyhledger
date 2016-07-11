@@ -14,7 +14,7 @@ from itertools import islice
 import colorsys
 import datetime
 
-hledger_ledgerpath_ = os.path.split(__file__)[0]+'/../Ledgers/r3.ledger'
+hledger_ledgerpath_ = os.path.split(__file__)[0]+'/../Ledgers/master.ledger'
 httpserver_root_ = os.path.join(os.path.dirname(os.path.realpath(__file__)),"visjsserver/")
 
 def sgn(a):
