@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# (c) Bernhard Tittelbach, 2015
+# (c) Bernhard Tittelbach, 2015-2016
 
 from collections import defaultdict
 import datetime

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Account Network</title>
+  <meta charset="utf-8"/>
+  <meta name="author" content="Bernhard Tittelbach">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/tether.min.js"></script>
+  <script type="text/javascript" src="js/vis.js"></script>
+  <script type="text/javascript" src="js/chart.js"></script>
+  <script type="text/javascript" src="js/jquery.canvasjs.min.js"></script>
+
+  <link href="css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+  <link href="css/vis.css" rel="stylesheet" type="text/css" />
+  <link href="css/tether-theme-basic.css" rel="stylesheet" type="text/css" />
+  <link href="css/tether-theme-arrows-dark.css" rel="stylesheet" type="text/css" />
+  <link href="css/tether.css" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    body {
+      background-color:#222;
+    }
+    #mynetwork {
+      color:white;
+      height:600px;
+    }
+
+    #nodehistoryclipbox {
+      background-color:white;
+      overflow: hidden;
+      height:2em;
+      z-index: 20;
+    }
+
+    #nodehistoryclipbox:hover {
+      overflow: visible;
+      animation: all;
+      animation-duration: 1s;
+    }
+
+    #nodehistory {
+      background-color:white;
+      color:black;
+      width:100%;
+    }
+
+    #nodebalance {
+      color:white;
+      min-height:2em;
+      font-size:130%;
+      text-align:center;
+      padding-bottom: 1ex;
+    }
+
+    .doughnutwithtext-legend {
+        list-style: outside none none;
+        right: 8px;
+        top: 0px;
+    }
+
+    .doughnutwithtext-legend li {
+        height: 25px;
+        font-size:8pt;
+        vertical-align: middle;
+        color:white;
+    }
+
+    .doughnutwithtext-legend li span {
+        position:absolute;
+        display: block;
+        margin-left:-25px;
+        margin-right:0px;
+        margin-top:-3px;
+        margin-bottom:0px;
+        padding:0;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+    }
+
+    div.vis-network-tooltip {
+      background-color:black;
+    }
+
+    .hoverlabel {
+      opacity:0.05;
+      color:black;
+      font-size:120%;
+      background-color:white;
+      z-index: 30;
+    }
+    .hoverlabel:hover {
+      opacity:1;
+      text-decoration: underline;
+    }
+
+  </style>
+
+  <script type="text/javascript" src="js/account_network.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-12" id="control">
+    <form class="form-inline" style="display:inline;">
+     <select id="selectaccount" class="form-control" onChange="selectAccountFromDropdown([this.options[this.selectedIndex].value]);"><option value=-1>-----</option></select>
+     </form>
+     <form class="form-inline" style="display:inline;" onsubmit="javascript:clusterSubAccounts(network,document.getElementById('clustermainaccount').value); return false;">
+      <input class="form-control"  type="text" id="clustermainaccount" style="max-width:30em">
+      <input class="btn btn-primary" type="submit" value="Cluster!">
+    </form>
+    <button type="button" id="button-unclusterall" class="btn btn-primary" autocomplete="off">Uncluster All</button>
+
+    <button type="button" id="button-physics-onoff" class="btn btn-primary active" aria-pressed="true" autocomplete="off">Physics On</button>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-secondary active" id="button-model-barneshut">BarnesHut
+      </button>
+      <button type="button" class="btn btn-secondary" id="button-model-atlas2">Repulsion
+      </button>
+    </div>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-secondary" id="dot-nodeshape">Dots
+      </button>
+      <button type="button" class="btn btn-secondary active" id="ellipses-nodeshape">Ellipses
+      </button>
+    </div>
+    <div class="btn-group" id="btngrp-graphstyle" data-toggle="buttons" style="margin-top:0.5em;">
+      <label class="btn btn-secondary"><input type="radio" name="graphstyle" id="button-graph-bars">Bars</label>
+      <label class="btn btn-secondary active"><input type="radio" name="graphstyle" id="button-graph-stepline" checked>StepLine</label>
+      <label class="btn btn-secondary"><input type="radio" name="graphstyle" id="button-graph-steplinedaysonly">StepDays</label>
+    </div>
+    (c)xro
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-12" id="nodehistoryclipbox"><div id="nodehistory"></div></div>
+  </div>
+  <div class="row">
+  </div>
+
+    <div class="col-sm-9" id="mynetwork"></div>
+    <div class="col-sm-3"><p id="nodebalance"></p><div id="nodeinfo"></div></div>
+
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+</body>
+</html>

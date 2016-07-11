@@ -10,7 +10,7 @@ import codecs
 import types
 from collections import namedtuple
 import subprocess
-from ledger import Transaction, Posting, Amount, FutureAmountFraction, sortTransactionsByDate, NoAmount, queryHledgerForAccountList
+from ledger import Transaction, Posting, Amount, FutureAmountFraction, sortTransactionsByDate, NoAmount, queryHledgerForAccountList, parseAmount, re_amount_str_3captures
 
 #################### BEGIN CONFIG ##########################
 #elba_posting_date_ = re.compile(r"([0-3]\d\.[0-1]\d)\s?UM [0-2]\d[:.][0-5]\d|\s([0-3]\d\.[0-1]\d\.\d\d)\sK\d\s[0-2]\d:[0-5]\d|([0-3]\d\.[0-1]\d\.\d\d)\s[0-2]\d:[0-5]\dK\d")
@@ -83,5 +83,14 @@ if len(not_balanced) > 0:
     sys.exit(1)
 assert(len(not_balanced) == 0)
 
-print("\n\n".join(map(str,(sortTransactionsByDate(transactions)))))
+transactions = sortTransactionsByDate(transactions)
+
+if len(sys.argv) > 1:
+    re_amt = re.compile(re_amount_str_3captures)
+    final_assert_m = re_amt.match(sys.argv[1].strip())
+    if not final_assert_m is None:
+        assertamt = parseAmount(*final_assert_m.group(1,2,3))
+        transactions[-1].postings[0].addPostPostingAssertAmount(assertamt)
+
+print("\n\n".join(map(str,(transactions))))
 
