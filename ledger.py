@@ -668,7 +668,7 @@ def queryHledgerForAccountListWithBalance(ledgerpath, depth=None, args=[]):
 
 
 ### query hledger in 'print' mode with given parameters
-def getHledgerRegister(ledgerpath, hledger_filter=[], depth=None):
+def getHLedger(ledgerpath, hledger_filter=[], depth=None):
     assert(isinstance(hledger_filter,list))
     stdout = subprocess.Popen(['hledger'] + ([] if ledgerpath is None or not os.path.exists(ledgerpath) else ['-f', ledgerpath]) + ["print"] + ([] if depth is None or not isinstance(depth,int) else ["--depth",str(depth)]) + hledger_filter, stdout=subprocess.PIPE).communicate()[0]
     return codecs.decode(stdout,"utf-8").split(u"\n")

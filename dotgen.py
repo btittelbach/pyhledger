@@ -58,8 +58,8 @@ class DotGraph(object):
 depth = 3
 #depth = None
 accounts = ledger.queryHledgerForAccountListWithBalance(hledger_ledgerpath_, depth=depth)
-transactions = filter(lambda t: len(t.postings) > 0, ledger.parseJournal(ledger.getHledgerRegister(hledger_ledgerpath_, ["--cost"],depth=None)))
-#transactions_all = ledger.parseJournal(ledger.getHledgerRegister(hledger_ledgerpath_, ["--cost"],depth=None))
+transactions = filter(lambda t: len(t.postings) > 0, ledger.parseJournal(ledger.getHLedger(hledger_ledgerpath_, ["--cost"],depth=None)))
+#transactions_all = ledger.parseJournal(ledger.getHLedger(hledger_ledgerpath_, ["--cost"],depth=None))
 transactions_dict = {}
 for t in transactions:
     if t.name in transactions_dict:

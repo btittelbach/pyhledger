@@ -22,14 +22,7 @@ dateformat_monthonly_ = "%Y-%m"
 
 # unaccounted money in fraction of expected beverages revenue
 unaccounted_money_fraction = [ (datetime.date(2013,1,22),-.0857),
-                                (datetime.date(2013,5,10),-.1002),
-                                (datetime.date(2013,8,9),-.3026),
-                                (datetime.date(2014,3,6),-.3193),
-                                (datetime.date(2014,3,30),-.303),
-                                (datetime.date(2014,6,19),.1619),
-                                (datetime.date(2014,10,16),-.1558),
-                                (datetime.date(2015,2,16),.0296),
-                                (datetime.date(2015,6,30),-.157),
+                               #...
                             ]
 
 colorslist_=["r","b","g","y",'c',"m",'w',"burlywood","aquamarine","chartreuse","Coral","Brown","DarkCyan","DarkOrchid","DeepSkyBlue","ForestGreen","Gold","FloralWhite","Indigo","Khaki","GreenYellow","MediumVioletRed","Navy","Tomato","Maroon","Fuchsia","LightGoldenRodYellow"] * 20
@@ -288,7 +281,7 @@ def utf_8_encoder(unicode_csv_data):
 ### query hledger in 'register' mode with given parameters and makes hledger output in csv-format
 ### the csv output is then being parsed and inserted into
 ### @return dict[accountname : string][day/week/month/quarter : datetime.time] = amount : float
-def getHledgerRegister(hledger_filter):
+def getHLedger(hledger_filter):
     assert(isinstance(hledger_filter,list))
     stdout = subprocess.Popen(['/home/bernhard/.cabal/bin/hledger', '-f', hledger_ledgerpath_,"register", '-O', 'csv','-o','-'] + hledger_filter, stdout=subprocess.PIPE).communicate()[0]
     ## python asumes subprocess.PIPE i.e. stdout is ascii encoded
@@ -387,9 +380,9 @@ graphMembershipdurationsPerPersonOverTime(memberships,memberinfos)
 plt.figure()
 graphUnaccountedMoney(unaccounted_money_fraction)
 plt.figure()
-plotMonthlyExpenses(getHledgerRegister(["-M","acct:expenses:room","acct:expenses:bank","acct:expenses:internet-domain","acct:expenses:taxes","date:from 2010/01/01"]))
+plotMonthlyExpenses(getHLedger(["-M","acct:expenses:room","acct:expenses:bank","acct:expenses:internet-domain","acct:expenses:taxes","date:from 2010/01/01"]))
 plt.figure()
-plotQuaterlyOtherExpenses(getHledgerRegister(["-Q","acct:expenses:---.+---","acct:expenses:projects","acct:expenses:disposal","date:from 2013/03/01"]))
+plotQuaterlyOtherExpenses(getHLedger(["-Q","acct:expenses:---.+---","acct:expenses:projects","acct:expenses:disposal","date:from 2013/03/01"]))
 plt.figure()
-plotQuaterlyOtherExpenses(getHledgerRegister(["-Q","--depth=1","acct:expenses","acct:revenue","not:acct:expenses:hirepurchase:lasercutter1","date:from 2013/03/01 to "+datetime.date.today().strftime("%Y/%m/19")]))
+plotQuaterlyOtherExpenses(getHLedger(["-Q","--depth=1","acct:expenses","acct:revenue","not:acct:expenses:hirepurchase:lasercutter1","date:from 2013/03/01 to "+datetime.date.today().strftime("%Y/%m/19")]))
 plt.show()

@@ -37,7 +37,7 @@ def utf_8_encoder(unicode_csv_data):
 ### query hledger in 'register' mode with given parameters and makes hledger output in csv-format
 ### the csv output is then being parsed and inserted into
 ### @return dict[accountname : string][day/week/month/quarter : datetime.time] = amount : float
-def getHledgerRegister(hledger_args):
+def getHLedger(hledger_args):
     assert(isinstance(hledger_args,list))
     stdout = subprocess.Popen(['hledger', 'register', '-O', 'csv','-o','-'] + hledger_args, stdout=subprocess.PIPE).communicate()[0]
     ## python asumes subprocess.PIPE i.e. stdout is ascii encoded
@@ -122,5 +122,5 @@ def plotRegister(register_dict):
     plt.subplots_adjust(left=0.05, bottom=0.08, right=0.98, top=0.95)
 
 plt.figure()
-plotRegister(getHledgerRegister(sys.argv[1:]))
+plotRegister(getHLedger(sys.argv[1:]))
 plt.show()
