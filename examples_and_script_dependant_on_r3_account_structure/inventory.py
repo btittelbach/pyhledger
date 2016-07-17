@@ -16,7 +16,11 @@ default_currency_ = "EUR"
 hledger_ledgerpath_=os.path.split(__file__)[0]+'/../Ledgers/r3.ledger'
 
 ledger_fileobj = open(hledger_ledgerpath_)
-journal = ledger.sortTransactionsByDate(ledger.parseJournal(ledger_fileobj))
+journal = ledger.sortTransactionsByDate(
+    list(ledger.createTempAccountsForAndConvertFromMultiDatePostings(
+        ledger.parseJournal(ledger_fileobj)
+        ))
+    )
 ledger_fileobj.close()
 
 acct_currency_amt_dict, asstresult = ledger.sumUpJournalVerifyAssertions(journal, abort_on_assrtfail=True)

@@ -103,7 +103,13 @@ print("done")
 
 #need to convert filter-generator to actual list or we can only read it once
 print("getting journal from hledger (apply filters) and parsing it into python objects ...", end="", flush=True)
-transactions = list(filter(lambda t: len(t.postings) > 0, ledger.parseJournal(ledger.getHledgerRegister(hledger_ledgerpath_, ["--cost"] + sys.argv[1:],depth=None))))
+transactions = list(
+                filter(
+                    lambda t: len(t.postings) > 0, ledger.parseJournal(
+                        ledger.getHLedger(hledger_ledgerpath_, ["--cost"] + sys.argv[1:],depth=None)
+                        )
+                    )
+                )
 print("done")
 
 print("depth limiting transactions ...", end="", flush=True)
@@ -111,12 +117,16 @@ for t in transactions:
     t.reduceDepth(depth)
 print("done")
 
+transactions_with_tempaccounts_without_multidates = list(ledger.sortTransactionsByDate(
+        list(ledger.createTempAccountsForAndConvertFromMultiDatePostings(transactions))
+    ))
+
 ## make running sum of journal for the graphs
 print("calculating running sum ...", end="", flush=True)
-running_sum_ = list(ledger.runningSumOfJournal(transactions))
+running_sum_ = list(ledger.runningSumOfJournal(transactions_with_tempaccounts_without_multidates))
 print("done")
 print("calculating cashflow ...", end="")
-acct_currency_accts_cashflow_dict_ = ledger.cashflowPerAccount(transactions,addinsubaccounts=True)
+acct_currency_accts_cashflow_dict_ = ledger.cashflowPerAccount(transactions, addinsubaccounts=True)
 print("done")
 
 

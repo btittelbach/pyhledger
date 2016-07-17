@@ -10,6 +10,7 @@ import codecs
 import re
 import copy
 from itertools import *
+import uuid
 
 dateformat_hledger_csvexport_ = "%Y/%m/%d"
 account_separator_ = ":"
@@ -131,12 +132,13 @@ class FutureAmountFraction(Amount):
         self.quantity *= self.fraction
 
 class Posting(object):
-    def __init__(self, account, amount, commenttags = [], assertamount = None):
+    def __init__(self, account, amount, commenttags = [], assertamount = None, virtual = False):
         self.account = account.strip()
         self.amount = amount if not amount is None else NoAmount()
         assert(isinstance(self.amount,Amount))
         self.tags={}
         self.commenttags = []
+        self.virtual = virtual
         self.post_posting_assert_amount = None if isinstance(assertamount,NoAmount) else assertamount
         if isinstance(commenttags,str):
             self.commenttags.append(commenttags.strip())
@@ -180,7 +182,10 @@ class Posting(object):
         if len(amtstr) == 0:
             return "    %s%s" % (self.account,self.__formatComment())
         else:
-            return "{:{fill}<4}{:{fill}<{maxacctlen}}{:{fill}<5}{:{fill}>{maxamountlen}}{commentstr}".format("",self.account,"",amtstr, fill=" ", maxacctlen=maxacctlen, maxamountlen=maxamountlen, commentstr=self.__formatComment())
+            return "{:{fill}<4}{:{fill}<{maxacctlen}}{:{fill}<5}{:{fill}>{maxamountlen}}{commentstr}".format("",self.__formatAccount(),"",amtstr, fill=" ", maxacctlen=maxacctlen, maxamountlen=maxamountlen, commentstr=self.__formatComment())
+
+    def __formatAccount(self):
+        return "(%s)" % self.account if self.virtual else self.account
 
     def __formatComment(self):
         commenttags = [ "%s:%s" % x for x in sorted(self.tags.items())] + self.commenttags
@@ -267,6 +272,22 @@ class Transaction(object):
         assert(isinstance(posting,Posting))
         self.postings.append(posting)
         return self
+
+    def getPostingDate(self, posting):
+        if isinstance(posting,int):
+            if posting >= len(self.postings):
+                raise KeyError
+            posting = self.postings[posting]
+        elif isinstance(posting,Posting):
+            if not posting in self.postings:
+                raise LookupError
+        else:
+            raise TypeError
+
+        if "date" in posting.tags:
+            return posting.tags["date"]
+        else:
+            return self.date
 
     def unelideJokerPostings(self):
         jokerpostings = list([p for p in self.postings if p.amount is None or isinstance(p.amount,NoAmount)])
@@ -378,10 +399,41 @@ class Transaction(object):
             lines += [ p.strAligned(maxacctlen, maxamountlen) for p in self.postings ]
         return "\n".join(lines)
 
-# TODO: postings can have individual date, so for certain asserts it may be necessary to have a journal sorted per account and to also assert per account
-# WARNING this will automatically unelideJokerPostings
-# returns [(t:Transaction, runsum:{acct:{currency:amt}}, assertionsok:bool)]
+def createTempAccountsForAndConvertFromMultiDatePostings(journal):
+    """ splits multi-date transactions into multiple transactions that use a temporary account between them
+        @arg journal a list of transactions
+        @return journal list of transactions without multi-date transactions but additional transaction that use an additional account
+    """
+    rj = []
+    for t in journal:
+        tpn = t.copy()
+        tpn.unelideJokerPostings()
+        mydates=defaultdict(list)
+        for p in tpn.postings:
+            mydates[tpn.getPostingDate(p)].append(p)
+        if 1 == len(mydates):
+            yield(t)
+        else:
+            transferaccount="temp:"+str(uuid.uuid1())
+            for date, postinglist in mydates.items():
+                tpns = copy.copy(tpn) # don't copy postings
+                tpns.setDate(date)
+                tpns.postings = postinglist
+                tpns.addPosting(Posting(transferaccount,NoAmount()))
+                yield(tpns)
+
+
+# WARNING this will automatically unelideJokerPostings, copy journal before if that is problem
+#  e.g.. [t.copy() for t in journal]
 def runningSumOfJournal(journal):
+    """ conmputes a running per account balance after each transaction
+        @arg journal a list of transactions
+        @returns [(t:Transaction, runsum:{acct:{currency:amt}}, assertionsok:bool)]
+
+        postings within one transaction can have individual and differing dates, so you have two options:
+            - run createTempAccountsForAndConvertFromMultiDatePostings() beforehand
+            - do nothing but be aware that balances/sums may be incorrect and asserts may fail (TODO / FIXME / silently remember those t and change balances but what about posting-dates in the relative past?)
+    """
     acct_currency_amt_dict = defaultdict(lambda: defaultdict(lambda: Amount(0,"")))
     assrt = True
     for t in journal:
