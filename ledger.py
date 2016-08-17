@@ -308,7 +308,7 @@ class Transaction(object):
         if len(jokerpostings) == 0:
             return self # nothing to do
         if len(jokerpostings) >= 2:
-            print(self, "\n------\n", jokerpostings, file=sys.stderr)
+            print(self, "\n------\n", list(map(str,jokerpostings)), file=sys.stderr)
         assert(len(jokerpostings) < 2)
         ## now find postings of currency that do not balance and fill in Amount into joker posting
         unitamounts = defaultdict(list)
@@ -624,7 +624,7 @@ def mergeByMonthQuarterYear(journal, mergeBy="month"):
 
 
 re_amount_str_3captures = r"([€$]|[a-zA-Z]+)?\s*((?:-\s?)?[0-9.,]+)\s*([€$]|[a-zA-Z]+)?"
-re_account_str = r"(?:[-\w.:/&]| [-\w.:/&])+"
+re_account_str = r"(?:[^ \t\n\r\f\v;]| [^ \t\n\r\f\v;])+"
 re_journalcommentline = re.compile(r"^;(.+)$")
 re_commentline = re.compile(r"^\s\s+;(.+)$")
 re_transaction = re.compile(r"^([0-9][-0-9/]+)(?:=[-0-9/]+)?\s+(?:\((.+)\)\s+)?([^;]*)(?:\s*;(.+))?$")
@@ -666,6 +666,7 @@ def parseJournal(jreader):
     journal = []
     within_commentblock = False
     for line in jreader:
+        line = line.strip("\n\r")
         if not re_commentblock_end.match(line) is None:
             within_commentblock = False
             continue
