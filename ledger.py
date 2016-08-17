@@ -150,11 +150,17 @@ class Posting(object):
     def addTag(self,tag,taginfo=""):
         if not isinstance(taginfo,str):
             taginfo=str(taginfo)
-        taginfo = taginfo.replace(" ","%20").replace(":","%3A")
+        taginfo = taginfo.strip()
         assert(tag.find(" ") < 0)
-        assert(taginfo.find(" ") < 0)
+        assert(taginfo.find(",") < 0)
         self.tags[tag]=taginfo
         return self
+
+    def getTag(self,tag):
+        """ @return str, "" or None """
+        if tag in self.tags:
+            return self.tags[tag]
+        return None
 
     def setDate(self, date):
         if date is None or date == "":
@@ -188,7 +194,7 @@ class Posting(object):
         return "(%s)" % self.account if self.virtual else self.account
 
     def __formatComment(self):
-        commenttags = [ "%s:%s" % x for x in sorted(self.tags.items())] + self.commenttags
+        commenttags = [ "%s:%s," % x for x in sorted(self.tags.items())] + self.commenttags
         if len(commenttags) == 0:
             return ""
         return ( "\n" if self.amount is None or isinstance(self.amount, NoAmount) else "") + "\n".join(map(lambda l: "{:{fill}<4}; {}".format("",l, fill=" "), commenttags))
@@ -237,11 +243,17 @@ class Transaction(object):
     def addTag(self,tag,taginfo=""):
         if not isinstance(taginfo,str):
             taginfo=str(taginfo)
-        taginfo = taginfo.replace(" ","%20").replace(":","%3A")
+        taginfo = taginfo.strip()
         assert(tag.find(" ") < 0)
-        assert(taginfo.find(" ") < 0)
+        assert(taginfo.find(",") < 0)
         self.tags[tag]=taginfo
         return self
+
+    def getTag(self,tag):
+        """ @return str, "" or None """
+        if tag in self.tags:
+            return self.tags[tag]
+        return None
 
     def setDate(self, date):
         if date is None or date == "":
@@ -386,7 +398,9 @@ class Transaction(object):
         commenttags = []
         if len(self.comments) > 0:
             commenttags.append(self.comments[0])
-        commenttags += [ "%s:%s" % x for x in sorted(self.tags.items())]
+        if len(commenttags) > 0 and len(self.tags) > 0:
+            commenttags += [","] # need to close comment with comma before adding tags, since comment might inclue a doublecolon and hledger might interpret it as unclosed tag and ignore the tags we are now adding
+        commenttags += [ "%s:%s," % x for x in sorted(self.tags.items())]
         if len(commenttags) > 0:
             commenttags.insert(0,";")
         lines += map(lambda s: "; %s" % s, self.desc)
@@ -613,7 +627,7 @@ re_posting = re.compile(r"^\s\s+("+re_account_str+r")(?:\s\s+"+re_amount_str_3ca
 re_include = re.compile(r"^include\s+(.+)\s*$")
 re_commentblock_begin = re.compile(r"^comment\s*$")
 re_commentblock_end = re.compile(r"^end comment\s*$")
-re_tags_ = re.compile("\s(\S+):(\S+)?")
+re_tags_ = re.compile("\s(\w+):([^,]+)?(?:,|$)")
 
 def parseAmount(c1,quantity,c2):
     if c1 is None and quantity is None and c2 is None:
