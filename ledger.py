@@ -150,7 +150,7 @@ class Posting(object):
     def addTag(self,tag,taginfo=""):
         if not isinstance(taginfo,str):
             taginfo=str(taginfo)
-        taginfo = taginfo.strip()
+        taginfo = taginfo.strip(" ,\t\n").replace(",","%2C")
         assert(tag.find(" ") < 0)
         assert(taginfo.find(",") < 0)
         self.tags[tag]=taginfo
@@ -159,7 +159,7 @@ class Posting(object):
     def getTag(self,tag):
         """ @return str, "" or None """
         if tag in self.tags:
-            return self.tags[tag]
+            return self.tags[tag].replace("%2C",",")  # might be a bad idea, but for now it's useful
         return None
 
     def setDate(self, date):
@@ -194,6 +194,8 @@ class Posting(object):
         return "(%s)" % self.account if self.virtual else self.account
 
     def __formatComment(self):
+        ## it's a good idea to always close a tag with a comma. Reduces mistakes during manual edit
+        ## NOTE: tags come first, comment comes later on postings. Otherwise we would have to check the commenttags for stray ':'
         commenttags = [ "%s:%s," % x for x in sorted(self.tags.items())] + self.commenttags
         if len(commenttags) == 0:
             return ""
@@ -243,7 +245,7 @@ class Transaction(object):
     def addTag(self,tag,taginfo=""):
         if not isinstance(taginfo,str):
             taginfo=str(taginfo)
-        taginfo = taginfo.strip()
+        taginfo = taginfo.strip(" ,\t\n").replace(",","%2C")
         assert(tag.find(" ") < 0)
         assert(taginfo.find(",") < 0)
         self.tags[tag]=taginfo
@@ -252,7 +254,7 @@ class Transaction(object):
     def getTag(self,tag):
         """ @return str, "" or None """
         if tag in self.tags:
-            return self.tags[tag]
+            return self.tags[tag].replace("%2C",",")  # might be a bad idea, but for now it's useful
         return None
 
     def setDate(self, date):
@@ -396,10 +398,13 @@ class Transaction(object):
     def __str__(self):
         lines = []
         commenttags = []
+        ## put first comment line right next to transaction and tags after that
         if len(self.comments) > 0:
             commenttags.append(self.comments[0])
-        if len(commenttags) > 0 and len(self.tags) > 0:
-            commenttags += [","] # need to close comment with comma before adding tags, since comment might inclue a doublecolon and hledger might interpret it as unclosed tag and ignore the tags we are now adding
+            if self.comments[0].find(":") > -1 and self.comments[0][-1] != ",":
+                ## oh oh, this would be interpreted as a unclosed tag, hiding the next tag after it, so we close it!
+                self.comments[0]+=","
+        ## it's a good idea to always close a tag with a comma. Reduces mistakes during manual edit.:w
         commenttags += [ "%s:%s," % x for x in sorted(self.tags.items())]
         if len(commenttags) > 0:
             commenttags.insert(0,";")
@@ -627,7 +632,8 @@ re_posting = re.compile(r"^\s\s+("+re_account_str+r")(?:\s\s+"+re_amount_str_3ca
 re_include = re.compile(r"^include\s+(.+)\s*$")
 re_commentblock_begin = re.compile(r"^comment\s*$")
 re_commentblock_end = re.compile(r"^end comment\s*$")
-re_tags_ = re.compile("\s(\w+):([^,]+)?(?:,|$)")
+##re_tags_ = re.compile("(?:\s|^)(\S+):(\S*)") ## old non-hledger-format-conform tag parser. Once could use this and print.py to fix files with broken tags
+re_tags_ = re.compile("(?:\s|^)(\S+):([^,]+)?(?:,|$)")
 
 def parseAmount(c1,quantity,c2):
     if c1 is None and quantity is None and c2 is None:
@@ -777,46 +783,47 @@ if __name__ == '__main__':
     test_journal1 = io.StringIO("""; journal created 2015-09-23 by hledger
 ; some journal comment
 ; next line of journal comment
-2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC
-    liability:visa              -60.3000 EUR = -60.3000 EUR
-    assets:gadgets:hackmake      30.3000 EUR
-    expenses:geocaching          30.3000 EUR
+2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC,
+    liability:visa              -60.3 EUR = -60.3 EUR
+    assets:gadgets:hackmake      30.3 EUR
+    expenses:geocaching          30.3 EUR
 
-2013/08/29 DealExtreme ; Eine Nette Transaktion paypal:ZZZZ-XXX-XXX
-    liability:visa          -31.0000 EUR
-    assets:gadgets            2.0900 EUR    ; Mask
-    assets:apparel           13.4100 EUR    ; Sonnenbrille
-    expenses:geocaching      14.9600 EUR    ; Akku
+2013/08/29 DealExtreme ; Eine Nette:Transaktion, paypal:ZZZZ-XXX-XXX,
+    liability:visa            -31 EUR
+    assets:gadgets           2.09 EUR    ; Mask
+    assets:apparel          13.41 EUR    ; Sonnenbrille
+    expenses:geocaching     14.96 EUR    ; Akku
     expenses:bicycle
 
-2013/10/28 Bitcoin ASIC Miner ; IT Solutions paypal:3V33333VVVVVV
-    liability:visa     -139.0000 EUR
-    assets:gadgets      139.0000 EUR    ; first comment about that gadget
+2013/10/28 Bitcoin ASIC Miner ; IT Solutions ; paypal:3V33333VVVVVV,
+    liability:visa     -139 EUR
+    assets:gadgets      139 EUR    ; gadget:,
+    ; first comment about that gadget
     ; second comment about that gadget
 
-2014/01/22 DealExtreme ; paypal:4H44H4H4H
-    liability:visa              -49.8300 EUR
-    assets:gadgets:hackmake       5.4700 EUR
-    assets:gadgets               19.6200 EUR    ; Starry Green Laserpointer
-    assets:gadgets                6.8500 EUR    ; FM Transmitter
-    expenses:handy               17.8900 EUR
+2014/01/22 DealExtreme ; paypal:4H44H4H4H,
+    liability:visa              -49.83 EUR
+    assets:gadgets:hackmake       5.47 EUR
+    assets:gadgets               19.62 EUR    ; Starry Green Laserpointer
+    assets:gadgets                6.85 EUR    ; FM Transmitter
+    expenses:handy               17.89 EUR
 
 """)
 
     test_journal2 = io.StringIO("""; journal created 2015-09-23 by hledger
 ; some journal comment
 ; next line of journal comment
-2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC
-    liability:visa              -60.3000 EUR
+2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC,
+    liability:visa              -60.3 EUR
     assets:inventory             2 Waffeln @@ 1 EUR = 2 Waffeln
-    expenses:geocaching          57.3000 EUR
+    expenses:geocaching          57.3 EUR
     expenses:apparel             4 Waffeln @@ 2 EUR
 
-2013/08/29 DealExtreme ; Eine Nette Transaktion paypal:ZZZZ-XXX-XXX
-    liability:visa          -31.0000 EUR = -91.30 EUR
-    expenses:geocaching      10.70 EUR = 68.00 EUR
-    expenses:apparel           -4 Waffeln @ 0.50 EUR = 0 Waffeln
-    assets:inventory         7 Waffeln @ 0.50 EUR = 9 Waffeln
+2013/08/29 DealExtreme ; Eine Nette Transaktion paypal:ZZZZ-XXX-XXX,
+    liability:visa          -31 EUR = -91.3 EUR
+    expenses:geocaching      10.7 EUR = 68 EUR
+    expenses:apparel           -4 Waffeln @ 0.5 EUR = 0 Waffeln
+    assets:inventory         7 Waffeln @ 0.5 EUR = 9 Waffeln
     assets:inventory         3 Autos @@ 3 EUR = 9 Waffeln
     expenses:bicycle
 
@@ -826,26 +833,26 @@ if __name__ == '__main__':
 """)
 
     test_journal3 = io.StringIO("""
-2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC
+2013/08/19 DealExtreme ; paypal:XYXYXYXYXYABC,
     liability:visa              -60.3000 EUR = -60.3010 EUR
     expenses:geocaching
 """)
 
     test_journal4 = io.StringIO("""
 2015/08/19 Transaction 1
-    liability:mastercard        -60.30 EUR
-    expenses:geocaching          20.30 EUR ; item 1
-    expenses:geocaching          40.00 EUR ; item 2
+    liability:mastercard        -60.3 EUR
+    expenses:geocaching          20.3 EUR ; item 1
+    expenses:geocaching          40.0 EUR ; item 2
 
 2015/08/29 Transaction 2 ; yet another one
-    liability:mastercard    -31.00 EUR
-    expenses:apparel         15.00 EUR
-    expenses:geocaching      15.00 EUR
-    assets:inventory          1.00 EUR
+    liability:mastercard    -31 EUR
+    expenses:apparel         15 EUR
+    expenses:geocaching      15 EUR
+    assets:inventory          1 EUR
 
 2015/09/10 Transaction 3 ; yeah yeah
-    assets:inventory         -1.00 EUR
-    expenses:geocaching       1.00 EUR
+    assets:inventory         -1 EUR
+    expenses:geocaching       1 EUR
 """)
 
     class TextParseWrite(unittest.TestCase):
@@ -866,9 +873,9 @@ if __name__ == '__main__':
             self.assertEqual(asstr, True)
             self.assertEqual(s["assets:inventory"]["Waffeln"].quantity, 9)
             self.assertEqual(s["assets:inventory"]["Waffeln"].currency, "Waffeln")
-            self.assertEqual(s["assets:inventory"]["Waffeln"].totalprice.quantity, 4.50)
+            self.assertEqual(s["assets:inventory"]["Waffeln"].totalprice.quantity, 4.5)
             self.assertEqual(s["assets:inventory"]["Waffeln"].totalprice.currency, "EUR")
-            self.assertEqual(s["assets:inventory"]["Waffeln"].perunitprice.quantity, 0.50)
+            self.assertEqual(s["assets:inventory"]["Waffeln"].perunitprice.quantity, 0.5)
             self.assertEqual(s["assets:inventory"]["Waffeln"].perunitprice.currency, "EUR")
             self.assertEqual(s["assets:inventory"]["Autos"].quantity, 3)
             self.assertEqual(s["assets:inventory"]["Autos"].currency, "Autos")
@@ -880,7 +887,7 @@ if __name__ == '__main__':
             self.assertEqual(s["expenses:apparel"]["Waffeln"].currency, "Waffeln")
             self.assertEqual(s["expenses:apparel"]["Waffeln"].totalprice.quantity, 0)
             self.assertEqual(s["expenses:apparel"]["Waffeln"].totalprice.currency, "EUR")
-            self.assertEqual(s["expenses:apparel"]["Waffeln"].perunitprice.quantity, 0.50)
+            self.assertEqual(s["expenses:apparel"]["Waffeln"].perunitprice.quantity, 0.5)
             self.assertEqual(s["expenses:apparel"]["Waffeln"].perunitprice.currency, "EUR")
 
             ss = runningSumOfJournal(parseJournal(test_journal3))
