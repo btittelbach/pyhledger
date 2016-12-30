@@ -62,7 +62,9 @@ for row in csvfile:
     tm = transfer_regex_.search(category)
     if not tm is None:
         sourceacct = tm.group(1)
-        assert(sourceacct in monefy_account_shorthands)
+        if not sourceacct in monefy_account_shorthands:
+            print("unknown sourceacct:",sourceacct,file=sys.stderr)
+            assert(False)
         sourceacct = monefy_account_shorthands[sourceacct]
         if description == "Assert":
             new_transaction = Transaction(description, date).addPosting(Posting(sourceacct,Amount(0,currency)).addPostPostingAssertAmount(Amount(-1*amountCmp,currency))).addTag("monefy")
