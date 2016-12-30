@@ -1,0 +1,9 @@
+/home/bernhard/realraum/Finanzen/bin/
+home/bernhard/realraum/Finanzen/Ledgers/
+/home/bernhard/realraum/Finanzen/Rechnungen/
+/home/bernhard/realraum/Finanzen/Umsätze/
+/home/bernhard/realraum/Finanzen/Umsätze/elba/
+/home/bernhard/realraum/Finanzen/Umsätze/elba/imported/
+/home/bernhard/realraum/Finanzen/Umsätze/elba/neu/
+/home/bernhard/realraum/Finanzen/Umsätze/Kassabuch/
+/home/bernhard/realraum/Finanzen/Umsätze/Projekte/

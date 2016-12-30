@@ -1,0 +1,105 @@
+#!/bin/zsh
+DIR=${0:h}
+BASEDIR="$DIR/../elba"
+TMP_CSV="$BASEDIR/r3-bank-history.csv"
+LEDGER_DIR="$DIR/../Ledgers"
+MAIN_LEDGER="bernhard.ledger"
+LEDGER_R3_SUBDIR="checking-raika"
+LEDGER_NAME="$(date --iso-8601)-checking-raika.ledger"
+RESULT_LEDGER="$LEDGER_DIR/$LEDGER_R3_SUBDIR/$LEDGER_NAME"
+PY_CSV_PREP_FILE="$DIR/convert-elba-records.py"
+PY_CSV_MONEFY_CONVERT="$DIR/convert-monefy-records.py"
+MONEFY_CSV_SRC=( ~/Dropbox/Monefy.Data.*.csv(.omN[1]) )
+MONEFY_LEDGER=$LEDGER_DIR/monefy.ledger
+TMP_RESULT=$(mktemp)
+TMP_NEWLINES=$(mktemp)
+
+
+zparseopts -D -E -- -import-unknown=IMPORTUNK
+
+ASSERTAMT="$(sed 's/!//;s/[.,]\([^.,]\+$\)/!\1/;s/[.,]//g;s/!/./' <<< "$*")"
+
+function importMonefy() {
+  if [[ -e $MONEFY_CSV_SRC &&  $MONEFY_CSV_SRC -nt $MONEFY_LEDGER ]]; then
+    $PY_CSV_MONEFY_CONVERT < $MONEFY_CSV_SRC >| $MONEFY_LEDGER
+  fi
+}
+
+RED=$'\e[1;31m'
+NO_COLOR=$'\e[0m'
+
+function die() {
+  local code_="$1"
+  local msg_="$2"
+
+  echo ""
+  1>&2 echo "${RED}ERROR:${NO_COLOR} $msg_"
+  exit $code_
+}
+
+function getNewElbaCSVLines() {
+  local NEW_LINES_FILE=$1
+  cat $BASEDIR/neu/elbi_umsaetze_*.csv $BASEDIR/imported/elbi_umsaetze_*.csv $BASEDIR/imported/elbi_umsaetze_*.csv | sort | uniq -u > $NEW_LINES_FILE
+  cat $NEW_LINES_FILE
+  echo
+  echo
+  echo "Ok to import these new files??"
+  read -q
+}
+
+function checkDuplicateLines() {
+  DUPS="$(cat $BASEDIR/imported/*.csv =(cat $BASEDIR/neu/*.csv | sort | uniq) | sort | uniq -d)"
+  if [[ "${#DUPS}" -gt 2 ]]; then
+    echo -e "${DUPS}"
+    die 3 "Above lines seem to be duplicates of already imported data, please fix the .csv"
+  fi
+}
+
+function importElbaCsvDir() {
+  [ ! -f "$RESULT_LEDGER" ] || die 2 "resulting ledger-file already exists: $RESULT_LEDGER"
+  [ -f "$PY_CSV_PREP_FILE" ]  || die 7 "Missing py-script: $PY_CSV_PREP_FILE"
+
+  if [ ! -d "$LEDGER_DIR/$LEDGER_R3_SUBDIR" ]; then
+    mkdir --parents "$LEDGER_DIR/$LEDGER_R3_SUBDIR" || die 2 "failed to create target dir: $LEDGER_DIR/$LEDGER_R3_SUBDIR"
+  fi
+
+  $PY_CSV_PREP_FILE $ASSERTAMT < $TMP_NEWLINES > "$TMP_RESULT" || die 4 "hledger csv->journal conversion failed"
+
+  if [[ ${#IMPORTUNK} -eq 0 ]]; then
+    grep -C 4 -i -- "---UNKNOWN---" "$TMP_RESULT"
+    echo "UNKNOWN found !! The above transactions have no matches and need new regexes in $PY_CSV_PREP_FILE or specifiy --import-unknown"
+    echo "Import anyway ?"
+    read -t 0  ## clear input buffer
+    if ! read -q ; then
+     die 3 "User Abort, edit $PY_CSV_PREP_FILE or specifiy --import-unknown"
+    fi
+  fi
+  mv "$TMP_RESULT" "$RESULT_LEDGER"
+
+  echo >> "$LEDGER_DIR/$MAIN_LEDGER"
+  echo "include $LEDGER_R3_SUBDIR/$LEDGER_NAME" >> "$LEDGER_DIR/$MAIN_LEDGER"
+  echo >> "$LEDGER_DIR/$MAIN_LEDGER"
+
+  mkdir --parents "$BASEDIR/imported"
+  IMPORTED_FILES=($BASEDIR/neu/elbi_*.csv)
+  git add "${IMPORTED_FILES[@]}"
+  git commit -m "pre-import, autocommit" "${IMPORTED_FILES[@]}"
+  #mv --target-directory "$BASEDIR/imported" "${IMPORTED_FILES[@]}"
+  local IMPORTED_NEW_LINES_FILEPATH="$BASEDIR/imported/${IMPORTED_FILES[-1]:t}"
+  mv $TMP_NEWLINES $IMPORTED_NEW_LINES_FILEPATH
+  git rm "${IMPORTED_FILES[@]}"
+  git add "$IMPORTED_NEW_LINES_FILEPATH"
+
+  rm -f "$TMP_CSV"
+
+  echo ""
+  echo "Successfully imported into $RESULT_LEDGER"
+  echo "please check file for any mapping mistakes"
+  git add "$RESULT_LEDGER" "$LEDGER_DIR/$MAIN_LEDGER"
+}
+
+importMonefy
+getNewElbaCSVLines $TMP_NEWLINES || die 7 "User Aborted: Please edit files and try again."
+#checkDuplicateLines
+importElbaCsvDir
+
