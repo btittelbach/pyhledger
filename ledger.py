@@ -476,7 +476,7 @@ def sumUpJournalVerifyAssertions(journal, abort_on_assrtfail=False):
                     raise(e)
             assrt = assrt and p.validatePostPostingAssertion(acct_currency_amt_dict)
             if abort_on_assrtfail and assrt == False:
-                return (acct_currency_amt_dict, (assrt, t, p))
+                return (acct_currency_amt_dict, (assrt, t_orig, p))
     return (acct_currency_amt_dict, assrt)
 
 def showSums(acct_currency_amt_dict, acct_filter=[]):
