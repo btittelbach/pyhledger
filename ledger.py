@@ -442,8 +442,7 @@ def createTempAccountsForAndConvertFromMultiDatePostings(journal):
                 yield(tpns)
 
 
-# WARNING this will automatically unelideJokerPostings, copy journal before if that is problem
-#  e.g.. [t.copy() for t in journal]
+# WARNING this will return a modified journal with unelided JokerPostings
 def runningSumOfJournal(journal):
     """ conmputes a running per account balance after each transaction
         @arg journal a list of transactions
@@ -455,20 +454,19 @@ def runningSumOfJournal(journal):
     """
     acct_currency_amt_dict = defaultdict(lambda: defaultdict(lambda: Amount(0,"")))
     assrt = True
-    for t in journal:
-        t.unelideJokerPostings()
+    for t_orig in journal:
+        t = t_orig.copy().unelideJokerPostings()
         for p in t.postings:
             if isinstance(p.amount,Amount) and len(p.amount.currency)>0 and p.amount.quantity != 0:
                 acct_currency_amt_dict[p.account][p.amount.currency] += p.amount
             assrt = assrt and p.validatePostPostingAssertion(acct_currency_amt_dict)
         yield(t, copy.deepcopy(acct_currency_amt_dict), assrt)
 
-# WARNING this will automatically unelideJokerPostings
 def sumUpJournalVerifyAssertions(journal, abort_on_assrtfail=False):
     acct_currency_amt_dict = defaultdict(lambda: defaultdict(lambda: Amount(0,"")))
     assrt = True
-    for t in journal:
-        t.unelideJokerPostings()
+    for t_orig in journal:
+        t = t_orig.copy().unelideJokerPostings()
         for p in t.postings:
             if isinstance(p.amount,Amount) and len(p.amount.currency)>0 and p.amount.quantity != 0:
                 try:
