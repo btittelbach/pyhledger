@@ -628,7 +628,7 @@ re_account_str = r"(?:[^ \t\n\r\f\v;]| [^ \t\n\r\f\v;])+"
 re_journalcommentline = re.compile(r"^;(.+)$")
 re_commentline = re.compile(r"^\s\s+;(.+)$")
 re_transaction = re.compile(r"^([0-9][-0-9/]+)(?:=[-0-9/]+)?\s+(?:\((.+)\)\s+)?([^;]*)(?:\s*;(.+))?$")
-re_posting = re.compile(r"^\s\s+("+re_account_str+r")(?:\s\s+"+re_amount_str_3captures+r"(?:\s+(@@?)\s+"+re_amount_str_3captures+r")?(?:\s*=\s*"+re_amount_str_3captures+r")?)?(?:\s+;(.+))?")
+re_posting = re.compile(r"^\s\s+("+re_account_str+r")(?:\s\s+"+re_amount_str_3captures+r"(?:\s*(@@?)\s*"+re_amount_str_3captures+r")?(?:\s*=\s*"+re_amount_str_3captures+r")?)?(?:\s+;(.+))?")
 re_include = re.compile(r"^include\s+(.+)\s*$")
 re_commentblock_begin = re.compile(r"^comment\s*$")
 re_commentblock_end = re.compile(r"^end comment\s*$")
