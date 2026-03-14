@@ -12,7 +12,7 @@ class R3Member(object):
 		## set to start of month and start with next month per default
 		self.firstmonth += dateutil.relativedelta.relativedelta(months=1, days=1-self.firstmonth.day)
 		self.lastmonth=None
-		self.membershipfee=25.0
+		self.membershipfee=30.0
 		self.contact_tel=[]
 		self.contact_address=[]
 		self.contact_email=[]

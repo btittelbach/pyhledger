@@ -11,10 +11,13 @@ from matplotlib.dates import date2num
 import datetime
 
 register_account_ = "assets:current:cash:register"
-revenue_accounts_ = ["revenue:sales:edibles", "revenue:sales:materials"]
+revenue_accounts_ = ["revenue:sales-gewinn:edibles", "revenue:sales:materials"]
 inventory_accounts_ = ["assets:current:inventory-edibles", "assets:current:inventory-materials" ]
-schwund_account_ = "expenses:shrinkage"
-donation_account_ = "expenses:shrinkage"
+schwund_account_ = "revenue:sales-gewinn:edibles"
+theoreticalsales_tag_ = "theoreticalsales"
+schwund_tag_ = "schwund"
+salessystem_tag_ = "inventorysalesaccounting"
+donation_account_ = "revenue:sales-gewinn:edibles"
 #donation_account_ = "revenue:donations:shrinkage"
 default_currency_ = "EUR"
 
@@ -50,19 +53,19 @@ d3_maximum_possible = 0.0
 d4_other_expenses = 0.0
 for t in journal:
     if t.name == "INVENTUR":
-        last_inventur = datetime.datetime.strptime(t.date,ledger.dateformat_hledger_csvexport_).date()
+        last_inventur = t.getDate()
         d4_other_expenses = 0.0
-    if t.date < "2015/10/01":
+    if t.date < datetime.date(2015,10,1):
         continue
-    if t.name.startswith("GEWINN "):
+    if not t.getTag(theoreticalsales_tag_) is None:
         # einkaufspreis aus GEWINN Transaction
         d1_minimum_break_even_euro += sum([p.amount.totalprice.quantity for p in t.postings if p.account in inventory_accounts_ and p.amount.totalprice.currency == default_currency_])
         # erwartete Einnahmen durch Anzahl verkaufte Dinge mal Verkaufspreis aus GEWINN Transaction
         d3_maximum_possible += sum([p.amount.quantity for p in t.postings if p.account == register_account_ and p.amount.currency == default_currency_])
-    elif schwund_account_ in [p.account for p in t.postings] or donation_account_ in [p.account for p in t.postings]:
+    elif not t.getTag(schwund_tag_) is None:
         # erwartete Einnahmen +/- der Differenz zu realen Einnahmen
         d2_actual_revenue = d3_maximum_possible + sum([p.amount.quantity for p in t.postings if p.account == register_account_ and p.amount.currency == default_currency_])
-        t_date = datetime.datetime.strptime(t.date,ledger.dateformat_hledger_csvexport_).date()
+        t_date = t.getDate()
         dates.append(t_date)
         num_days = (t_date - last_inventur).days
         interval.append(num_days)

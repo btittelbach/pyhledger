@@ -1,5 +1,23 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
+
+# Copyright (C) 2011-2015,2020 Author: Bernhard Tittelbach
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License v2 for more details.
+
+# You should have received a copy of the GNU General Public License v2
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+# or look here: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+
 
 import sys, os, io
 import csv
@@ -19,10 +37,10 @@ def findMemberInSqLite(searchstr):
     cur.execute('Select p_id, p_name, p_nick, p_birthday, p_note from persons where p_name like ? or p_nick like ?',(searchstr,searchstr) )
     rows = cur.fetchall()
     if len(rows) == 0:
-        print "Nobody found"
+        print("Nobody found")
         return None
     if len(rows) > 1:
-        print "More than one person found, using first match"
+        print("More than one person found, using first match")
     member = R3Member(rows[0][1],rows[0][2])
     p_id = rows[0][0]
     if rows[0][3]:
@@ -82,7 +100,7 @@ def addMemberToSqLite(member):
         con.close()
 
     except (lite.Error) as e:
-        print("Error %s:" % e.args[0])
+        print(("Error %s:" % e.args[0]))
         sys.exit(1)
 
 def makeWikiACL(member):
@@ -101,6 +119,6 @@ def enterMemberWithGui():
 
 
 if len(sys.argv) > 1:
-    print findMemberInSqLite(sys.argv[1])
+    print(findMemberInSqLite(sys.argv[1]))
 else:
     enterMemberWithGui()

@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2011-2015 Author: Bernhard Tittelbach
+# Copyright (C) 2011-2015,2020 Author: Bernhard Tittelbach
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -52,7 +52,7 @@ def showErrorMessage(msg, parent=None):
         @param msg error message to display
         @param parent parent window
     """
-    dial = wx.MessageDialog(parent, msg, u"PySimPa", wx.ICON_ERROR)
+    dial = wx.MessageDialog(parent, msg, "PySimPa", wx.ICON_ERROR)
     dial.ShowModal()
 
 def showInfoMessage(msg, parent=None):
@@ -60,7 +60,7 @@ def showInfoMessage(msg, parent=None):
         @param msg info message to display
         @param parent parent window
     """
-    dial = wx.MessageDialog(parent, msg, u"PySimPa", wx.ICON_INFORMATION)
+    dial = wx.MessageDialog(parent, msg, "PySimPa", wx.ICON_INFORMATION)
     dial.ShowModal()
 
 def showProgressInfo(msg, maximum=None, parent=None):
@@ -68,7 +68,7 @@ def showProgressInfo(msg, maximum=None, parent=None):
         @param msg info message to display
         @param parent parent window
     """
-    progressdial = wx.ProgressDialog(title=u"PySimPa", message=msg, parent=parent, maximum=maximum, style = wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+    progressdial = wx.ProgressDialog(title="PySimPa", message=msg, parent=parent, maximum=maximum, style = wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
     return progressdial
 
 
@@ -125,7 +125,7 @@ class FileExistsValidator(wx.PyValidator):
             textCtrl.SetFocus()
             textCtrl.Refresh()
         else:
-            textCtrl.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+            textCtrl.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
             textCtrl.Refresh()
         return isfile
 
@@ -146,7 +146,7 @@ class DateValidator(wx.PyValidator):
         self.dateformat = dateformat
         self.emptyok=emptyok
         self.date = None
-        wx.PyValidator.__init__(self)
+        wx.Validator.__init__(self)
 
     def Clone(self):
         return DateValidator(self.errormsg, self.dateformat,self.emptyok)
@@ -155,11 +155,11 @@ class DateValidator(wx.PyValidator):
         textCtrl = self.GetWindow()
         self.date = None
         if self.emptyok and len(textCtrl.GetValue().strip()) == 0:
-            textCtrl.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+            textCtrl.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
             return True
         try:
             self.date = datetime.datetime.strptime(textCtrl.GetValue(), self.dateformat).date()
-            textCtrl.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+            textCtrl.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
             return True
         except ValueError:
             textCtrl.SetBackgroundColour("pink")
@@ -173,7 +173,7 @@ class DateValidator(wx.PyValidator):
     def TransferFromWindow(self):
         return True
 
-class NotEmptyValidator(wx.PyValidator):
+class NotEmptyValidator(wx.Validator):
     """ wx.Validator that checks if the text in an associated wx.TextCtrl is not empty
 
         @see documentation on wxWidgets Validator and dialogs
@@ -181,7 +181,7 @@ class NotEmptyValidator(wx.PyValidator):
     def __init__(self, errormsg):
         """ @param errormsg Message to display if this wx.TextCtrl value is not correct """
         self.errormsg = errormsg
-        wx.PyValidator.__init__(self)
+        wx.Validator.__init__(self)
 
     def Clone(self):
         return NotEmptyValidator(self.errormsg)
@@ -194,7 +194,7 @@ class NotEmptyValidator(wx.PyValidator):
             textCtrl.Refresh()
             return False
         else:
-            textCtrl.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+            textCtrl.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
             return True
 
     def TransferToWindow(self):
@@ -271,8 +271,8 @@ class AddNewR3Member(wx.Dialog):
         contacts_emails_sizer.Add(self.contacts_emails_txt, 3, border=8, flag=wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM)
 
         ## Init and fill membershiptype
-        self.junior_choice = wx.Choice(self, choices=["Normal Member (25.00)","Junior Member (15.00)", "Sponsoring Member (30.00)"], style=0)
-        junior_sizer.Add(self.junior_choice, 1, border=8, flag=wx.ALL|wx.ALIGN_RIGHT)
+        self.junior_choice = wx.Choice(self, choices=["Normal Member (30.00)","Junior Member (15.00)", "Normal Member + Donation (35.00)", "Pre-School Member ( 7.50)", "Sponsoring Member (60.00)"], style=0)
+        junior_sizer.Add(self.junior_choice, 1, border=8, flag=wx.ALL)
 
 
         ## Init and fill bottom buttons
@@ -315,10 +315,10 @@ class AddNewR3Member(wx.Dialog):
             pass
         if self.memberbirthdate_txt.GetValidator().date:
             member.birthdate=self.memberbirthdate_txt.GetValidator().date
-        map(member.addtel, self.contacts_telnumbers_txt.GetValue().split(";"))
+        list(map(member.addtel, self.contacts_telnumbers_txt.GetValue().split(";")))
         member.contact_address = [self.contacts_address_txt.GetValue()] if self.contacts_address_txt.GetValue() else []
-        map(member.addxmpp,self.contacts_xmpps_txt.GetValue().split(";"))
-        map(member.addemail,self.contacts_emails_txt.GetValue().split(";"))
+        list(map(member.addxmpp,self.contacts_xmpps_txt.GetValue().split(";")))
+        list(map(member.addemail,self.contacts_emails_txt.GetValue().split(";")))
         return member
 
 
@@ -341,4 +341,4 @@ def showDialogNewMember():
 ############# Unit Tests ###############
 
 if __name__ == '__main__':
-    print(showDialogNewMember())
+    print((showDialogNewMember()))
