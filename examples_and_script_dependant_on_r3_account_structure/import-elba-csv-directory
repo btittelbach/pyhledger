@@ -1,18 +1,17 @@
 #!/bin/zsh
 DIR=${0:h}
-BASEDIR="$DIR/../elba"
+BASEDIR="$DIR/../Umsätze/elba"
 TMP_CSV="$BASEDIR/r3-bank-history.csv"
 LEDGER_DIR="$DIR/../Ledgers"
-MAIN_LEDGER="bernhard.ledger"
-LEDGER_R3_SUBDIR="checking-raika"
-LEDGER_NAME="$(date --iso-8601)-checking-raika.ledger"
+MAIN_LEDGER="r3.ledger"
+LEDGER_R3_SUBDIR="checking-r3"
+LEDGER_NAME="$(date --iso-8601)-checking-r3.ledger"
 RESULT_LEDGER="$LEDGER_DIR/$LEDGER_R3_SUBDIR/$LEDGER_NAME"
-PY_CSV_PREP_FILE="$DIR/convert-elba-records.py"
-PY_CSV_MONEFY_CONVERT="$DIR/convert-monefy-records.py"
-MONEFY_CSV_SRC=( ~/Dropbox/Monefy.Data.*.csv(.omN[1]) )
-MONEFY_LEDGER=$LEDGER_DIR/monefy.ledger
+PY_CSV_PREP_FILE="$DIR/convert_elba_records.py"
 TMP_RESULT=$(mktemp)
 TMP_NEWLINES=$(mktemp)
+local configpy="${0:h}/config.py"
+local ledgereditor="${0:h}/start_r3ledgereditor.sh"
 
 
 zparseopts -D -E -- -import-unknown=IMPORTUNK
@@ -37,69 +36,142 @@ function die() {
   exit $code_
 }
 
-function getNewElbaCSVLines() {
-  local NEW_LINES_FILE=$1
-  cat $BASEDIR/neu/elbi_umsaetze_*.csv $BASEDIR/imported/elbi_umsaetze_*.csv $BASEDIR/imported/elbi_umsaetze_*.csv | sort | uniq -u > $NEW_LINES_FILE
-  cat $NEW_LINES_FILE
-  echo
-  echo
-  echo "Ok to import these new files??"
-  read -q
+function get_configpy_mtime() {
+  echo $(date +%s -r "$configpy")
 }
 
-function checkDuplicateLines() {
-  DUPS="$(cat $BASEDIR/imported/*.csv =(cat $BASEDIR/neu/*.csv | sort | uniq) | sort | uniq -d)"
-  if [[ "${#DUPS}" -gt 2 ]]; then
-    echo -e "${DUPS}"
-    die 3 "Above lines seem to be duplicates of already imported data, please fix the .csv"
-  fi
+pycompile () {
+  local -a PYINTARG
+  zparseopts -D -E "i:=PYINTARG"
+  ${PYINTARG[2]:-python} -c "import py_compile; py_compile.compile(r'${(j:'); py_compile.compile(r':)*}')"
 }
 
 function importElbaCsvDir() {
-  [ ! -f "$RESULT_LEDGER" ] || die 2 "resulting ledger-file already exists: $RESULT_LEDGER"
-  [ -f "$PY_CSV_PREP_FILE" ]  || die 7 "Missing py-script: $PY_CSV_PREP_FILE"
+  [[ ! -f "$RESULT_LEDGER" ]] || die 8 "resulting ledger-file already exists: $RESULT_LEDGER"
+  [[ -f "$PY_CSV_PREP_FILE" ]]  || die 9 "Missing py-script: $PY_CSV_PREP_FILE"
 
   if [ ! -d "$LEDGER_DIR/$LEDGER_R3_SUBDIR" ]; then
-    mkdir --parents "$LEDGER_DIR/$LEDGER_R3_SUBDIR" || die 2 "failed to create target dir: $LEDGER_DIR/$LEDGER_R3_SUBDIR"
+    mkdir --parents "$LEDGER_DIR/$LEDGER_R3_SUBDIR" || die 7 "failed to create target dir: $LEDGER_DIR/$LEDGER_R3_SUBDIR"
   fi
 
-  $PY_CSV_PREP_FILE $ASSERTAMT < $TMP_NEWLINES > "$TMP_RESULT" || die 4 "hledger csv->journal conversion failed"
+  local FILES_TO_IMPORT=($BASEDIR/neu/*_umsaetze_*.csv)
 
-  if [[ ${#IMPORTUNK} -eq 0 ]]; then
-    grep -C 4 -i -- "---UNKNOWN---" "$TMP_RESULT"
-    echo "UNKNOWN found !! The above transactions have no matches and need new regexes in $PY_CSV_PREP_FILE or specifiy --import-unknown"
-    echo "Import anyway ?"
-    read -t 0  ## clear input buffer
-    if ! read -q ; then
-     die 3 "User Abort, edit $PY_CSV_PREP_FILE or specifiy --import-unknown"
+  local TMP_result=$(mktemp)
+  local TMP_errors=$(mktemp)
+  local PREV_IMPORT_DATE=$(date -r $BASEDIR/imported/*.csv(oc[1]) '+%Y-%m-%d')
+  local DAY_BEFORE_PREV_IMPORT_DATE=$(date --date "$PREV_IMPORT_DATE -2 day" '+%Y-%m-%d')
+
+  local retry_import=1
+  while [[ $retry_import -eq 1 ]]; do
+    $PY_CSV_PREP_FILE $ASSERTAMT $FILES_TO_IMPORT > "$TMP_result" 2> "$TMP_errors" || { cat $TMP_errors; die 2 "hledger csv->journal conversion failed" }
+
+    if [[ -s $TMP_errors ]]; then
+      echo "Import produced error or warning messages ... press Enter to display"
+      read -t 0  ## clear input buffer
+      read -q
+      cat $TMP_errors | less
+      echo "================================"
+      echo
+      echo "Continue despite errors? [Y] or abort? [n]"
+      read -t 0  ## clear input buffer
+      if ! read -q ; then
+         die 3 "User Abort, please fix errors and try again"
+      fi
     fi
-  fi
-  mv "$TMP_RESULT" "$RESULT_LEDGER"
 
+    local imports_too_old="$(hledger -f $TMP_result -I print date:to$DAY_BEFORE_PREV_IMPORT_DATE)"
+    if [[ -n $imports_too_old ]]; then
+      echo
+      echo
+      echo "===================== showing possibly too OLD transactions ====================="
+      echo "$imports_too_old"
+      echo "======================= end possibly too OLD transactions ======================="
+    fi
+
+    if [[ ${#IMPORTUNK} -eq 0 ]]; then
+      echo
+      echo
+      if grep  -i -q -- "---UNKNOWN---" "$TMP_result"; then
+        echo "===================== showing UNKNOWN transactions ====================="
+        hledger -f $TMP_result -I print acct:'---UNKNOWN---'
+        echo "======================= end UNKNOWN transactions ======================="
+        echo "UNKNOWN found !! The above transactions have no matches and need new regexes in ./bin/config.py or specifiy --import-unknown"
+        echo "will auto-retry if config.py changes. Please edit now."
+        echo "or [y] Import anyway? or [n] abort?"
+        read -t 0  ## clear input buffer
+
+        ## wait until [y],[n] or config.py has been changed
+        local prev_mtime=$(get_configpy_mtime)
+        local wait_on_user=1
+        while [[ $wait_on_user -eq 1 ]]; do
+          read -q -t 2
+          case $? in
+            (0) retry_import=0; break 2 ;;
+            (1) die 4 "User Abort, edit ./bin/config.py or specifiy --import-unknown" ;;
+            (2)
+                if [[ $(get_configpy_mtime) -ne $prev_mtime ]]; then
+                  ## check if config.py is syntax error free, otherwise wait onto next update
+                  if pycompile $configpy; then
+                    wait_on_user=0
+                    last
+                  else
+                    prev_mtime=$(get_configpy_mtime)
+                    last
+                  fi
+                fi
+                ;;
+          esac
+        done
+      else
+        retry_import=0
+      fi
+    else
+      retry_import=0
+    fi
+  done
+
+  git add "${FILES_TO_IMPORT[@]}"
+  git commit -m "pre-import, autocommit" "${FILES_TO_IMPORT[@]}"
+
+  echo "Edit file before import in r3ledgeredit?"
+  if read -q; then
+    ${ledgereditor} "$TMP_result"
+  fi
+
+  mv "$TMP_result" "$RESULT_LEDGER"
   echo >> "$LEDGER_DIR/$MAIN_LEDGER"
   echo "include $LEDGER_R3_SUBDIR/$LEDGER_NAME" >> "$LEDGER_DIR/$MAIN_LEDGER"
   echo >> "$LEDGER_DIR/$MAIN_LEDGER"
+  git add "$RESULT_LEDGER" "$LEDGER_DIR/$MAIN_LEDGER"
 
   mkdir --parents "$BASEDIR/imported"
-  IMPORTED_FILES=($BASEDIR/neu/elbi_*.csv)
-  git add "${IMPORTED_FILES[@]}"
-  git commit -m "pre-import, autocommit" "${IMPORTED_FILES[@]}"
-  #mv --target-directory "$BASEDIR/imported" "${IMPORTED_FILES[@]}"
-  local IMPORTED_NEW_LINES_FILEPATH="$BASEDIR/imported/${IMPORTED_FILES[-1]:t}"
-  mv $TMP_NEWLINES $IMPORTED_NEW_LINES_FILEPATH
-  git rm "${IMPORTED_FILES[@]}"
-  git add "$IMPORTED_NEW_LINES_FILEPATH"
+  local dateprep=$(date +%Y-%m-%d_%H:%M_)
+  for file in "${FILES_TO_IMPORT[@]}"; do
+    git mv "$file" "${BASEDIR}/imported/${dateprep}${file:t}"
+  done
 
-  rm -f "$TMP_CSV"
+  if hledger -f "$LEDGER_DIR/$MAIN_LEDGER" check >/dev/null; then
 
-  echo ""
-  echo "Successfully imported into $RESULT_LEDGER"
-  echo "please check file for any mapping mistakes"
-  git add "$RESULT_LEDGER" "$LEDGER_DIR/$MAIN_LEDGER"
+    echo ""
+    echo ""
+    echo "Successfully imported into $RESULT_LEDGER"
+    echo "please check file for any mapping mistakes"
+    echo "and do git commit; git push"
+
+  else
+
+    echo ""
+    echo ""
+    echo "Please fix error in $RESULT_LEDGER"
+    echo "then check with r3ledger if everything is balanced"
+    echo "and do git commit; git push"
+  
+  fi
+
 }
 
-importMonefy
-getNewElbaCSVLines $TMP_NEWLINES || die 7 "User Aborted: Please edit files and try again."
-#checkDuplicateLines
+
+[[ -z $ASSERTAMT ]] && die 1 "current checking balance not given as argument!"
+
 importElbaCsvDir
 
