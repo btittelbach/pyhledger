@@ -1018,7 +1018,7 @@ async def on_remove_invoice(filepath: Path, txn: Transaction):
     code = txn.code or ''
     codes = [ c for c in [c.strip() for c in code.split(',')] if c != filepath.name]
     txn.setCode(','.join(codes) if codes else None)
-    txn.rmTag(INVOICE_TAG_NAME, tagvalue=filepath.name) # rm from tags as well
+    txn.rmTag(INVOICE_TAG_NAME_, tagvalue=filepath.name) # rm from tags as well
 
     if filepath in txn.invoice_files:
         del txn.invoice_files[txn.invoice_files.index(filepath)]
